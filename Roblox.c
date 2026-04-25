@@ -1,146 +1,136 @@
-" OLD ROBLOX CLEAN - No text, zoom with MODE/DEL
-
 ClrDraw
 AxesOff
 0→Xmin:1→Xmax
 0→Ymin:1→Ymax
 
-0→PX:0→PZ:0→PY
-0→VX:0→VZ:0→VY
-160→CX:90→CY
-0→FRAME:1→ONGROUND
-9→SCALE:85→OX:65→OY
-0→CAMH:42
+0→PX:0→PZ:0→PY:0→VX:0→VZ:0→VY:160→CX:90→CY:0→F:1→G:9→S:85→OX:65→OY:0→CH:42
 
 Lbl L
 getKey→K
 
-If K=24:VX-1.1→VX
-If K=26:VX+1.1→VX
-If K=25:VZ-1.1→VZ
-If K=34:VZ+1.1→VZ
-PX+VX→PX:PZ+VZ→PZ
-VX*0.7→VX:VZ*0.7→VZ
+If K=24:VX-1→VX
+If K=26:VX+1→VX
+If K=25:VZ-1→VZ
+If K=34:VZ+1→VZ
+PX+VX→PX:PZ+VZ→PZ:VX*.7→VX:VZ*.7→VZ
 
 If PX<0:0→PX
-If PX>13:13→PX
+If PX>12:12→PX
 If PZ<0:0→PZ
-If PZ>13:13→PZ
+If PZ>12:12→PZ
 
-If K=105 and ONGROUND=1
+If K=105 and G=1
 Then
-  7.5→VY:0→ONGROUND
+  7→VY:0→G
 End
-VY-0.4→VY
+VY-.4→VY
 PY+VY→PY
 If PY<0
 Then
-  0→PY:0→VY:1→ONGROUND
+  0→PY:0→VY:1→G
 End
 
-" Zoom with MODE and DEL (like I/O)
-If K=22:SCALE+1→SCALE:CAMH+2→CAMH
-If K=23:SCALE-1→SCALE:CAMH-2→CAMH
-If SCALE<5:5→SCALE
-If SCALE>18:18→SCALE
-If CAMH<25:25→CAMH
-If CAMH>65:65→CAMH
+If K=22:S+1→S:CH+2→CH
+If K=23:S-1→S:CH-2→CH
+If S<6:6→S
+If S>16:16→S
+If CH<28:28→CH
+If CH>60:60→CH
 
-If K=22:CX-4→CX
-If K=23:CX+4→CX
-If K=31:CY-4→CY
-If K=32:CY+4→CY
-If CX<5:5→CX
-If CX>315:315→CX
-If CY<5:5→CY
-If CY>205:205→CY
+If K=22:CX-3→CX
+If K=23:CX+3→CX
+If K=31:CY-3→CY
+If K=32:CY+3→CY
+If CX<8:8→CX
+If CX>312:312→CX
+If CY<8:8→CY
+If CY>200:200→CY
 
 ClrDraw
 
-For(I,0,55,7):Line(0,I,320,I,0):End
+For(I,0,50,6):Line(0,I,320,I,0):End
 
-Line(OX-60,OY-32,OX+150,OY-32,0)
-Line(OX+150,OY-32,OX+150,OY+120,0)
-Line(OX+150,OY+120,OX-60,OY+120,0)
-Line(OX-60,OY+120,OX-60,OY-32,0)
+Line(OX-55,OY-28,OX+145,OY-28,0)
+Line(OX+145,OY-28,OX+145,OY+115,0)
+Line(OX+145,OY+115,OX-55,OY+115,0)
+Line(OX-55,OY+115,OX-55,OY-28,0)
 
-For(I,0,13)
-For(J,0,13)
-(I-J)*SCALE/2+OX→X1
-(I+J)*SCALE/4+OY→Y1
-(I-J+1)*SCALE/2+OX→X2
-(I+J+1)*SCALE/4+OY→Y2
-(I-J)*SCALE/2+OX→X3
-(I+J+1)*SCALE/4+OY→Y3
-(I-J+1)*SCALE/2+OX→X4
-(I+J)*SCALE/4+OY→Y4
-Line(X1,Y1,X2,Y2,0)
-Line(X2,Y2,X3,Y3,0)
-Line(X3,Y3,X4,Y4,0)
-Line(X4,Y4,X1,Y1,0)
-Pxl-On(X1+3,Y1+2)
-Pxl-On(X2-3,Y2+2)
-Pxl-On(X3-3,Y3-2)
-Pxl-On(X4+3,Y4-2)
+For(I,0,12)
+For(J,0,12)
+(I-J)*S/2+OX→A
+(I+J)*S/4+OY→B
+(I-J+1)*S/2+OX→C
+(I+J+1)*S/4+OY→D
+(I-J)*S/2+OX→E
+(I+J+1)*S/4+OY→F
+(I-J+1)*S/2+OX→G
+(I+J)*S/4+OY→H
+Line(A,B,C,D,0)
+Line(C,D,E,F,0)
+Line(E,F,G,H,0)
+Line(G,H,A,B,0)
+Pxl-On(A+2,B+1)
+Pxl-On(C-2,D+1)
+Pxl-On(E-2,F-1)
+Pxl-On(G+2,H-1)
 End
 End
 
-For(B,1,4)
-If B=1:2→I:3→J:3→H
-If B=2:9→I:5→J:2→H
-If B=3:5→I:10→J:4→H
-If B=4:11→I:8→J:1→H
-(I-J)*SCALE/2+OX→BX
-(I+J)*SCALE/4+OY→BY
-Line(BX,BY-H*5,BX+SCALE/2,BY-SCALE/5-H*5,0)
-Line(BX+SCALE/2,BY-SCALE/5-H*5,BX,BY-SCALE/2.5-H*5,0)
-Line(BX,BY-SCALE/2.5-H*5,BX-SCALE/2,BY-SCALE/5-H*5,0)
-Line(BX-SCALE/2,BY-SCALE/5-H*5,BX,BY-H*5,0)
-Line(BX,BY,BX,BY-H*5,0)
-Line(BX+SCALE/2,BY-SCALE/5,BX+SCALE/2,BY-SCALE/5-H*5,0)
-Line(BX-SCALE/2,BY-SCALE/5,BX-SCALE/2,BY-SCALE/5-H*5,0)
+For(B,1,3)
+If B=1:3→I:2→J:3→H
+If B=2:8→I:6→J:2→H
+If B=3:5→I:9→J:4→H
+(I-J)*S/2+OX→A
+(I+J)*S/4+OY→B
+Line(A,B-H*4,A+S/2,B-S/4-H*4,0)
+Line(A+S/2,B-S/4-H*4,A,B-S/2-H*4,0)
+Line(A,B-S/2-H*4,A-S/2,B-S/4-H*4,0)
+Line(A-S/2,B-S/4-H*4,A,B-H*4,0)
+Line(A,B,A,B-H*4,0)
+Line(A+S/2,B-S/4,A+S/2,B-S/4-H*4,0)
+Line(A-S/2,B-S/4,A-S/2,B-S/4-H*4,0)
 End
 
-(PX-PZ)*SCALE/2+OX→PSX
-(PX+PZ)*SCALE/4+OY-PY*SCALE/4.5→PSY
+(PX-PZ)*S/2+OX→X
+(PX+PZ)*S/4+OY-PY*S/4→Y
 
-FRAME+1→FRAME
-If abs(VX)+abs(VZ)>0.7
+F+1→F
+If abs(VX)+abs(VZ)>0.6
 Then
-  sin(FRAME*0.42)*3.5→LEG
-  sin(FRAME*0.42+3.14)*4.5→ARM
+  sin(F*.4)*3→L
+  sin(F*.4+3.14)*4→R
 Else
-  0→LEG:0.5→ARM
+  0→L:.5→R
 End
 
-Line(PSX-6,PSY-8,PSX-6+LEG,PSY+6,0)
-Line(PSX-5,PSY-8,PSX-5+LEG,PSY+6,0)
-Line(PSX+6,PSY-8,PSX+6-LEG,PSY+6,0)
-Line(PSX+5,PSY-8,PSX+5-LEG,PSY+6,0)
+Line(X-5,Y-7,X-5+L,Y+5,0)
+Line(X-4,Y-7,X-4+L,Y+5,0)
+Line(X+5,Y-7,X+5-L,Y+5,0)
+Line(X+4,Y-7,X+4-L,Y+5,0)
 
-Line(PSX-7,PSY-18,PSX+7,PSY-18,0)
-Line(PSX+7,PSY-18,PSX+7,PSY-8,0)
-Line(PSX+7,PSY-8,PSX-7,PSY-8,0)
-Line(PSX-7,PSY-8,PSX-7,PSY-18,0)
-Line(PSX-3,PSY-18,PSX-3,PSY-8,0)
-Line(PSX+3,PSY-18,PSX+3,PSY-8,0)
+Line(X-6,Y-16,X+6,Y-16,0)
+Line(X+6,Y-16,X+6,Y-7,0)
+Line(X+6,Y-7,X-6,Y-7,0)
+Line(X-6,Y-7,X-6,Y-16,0)
+Line(X-2,Y-16,X-2,Y-7,0)
+Line(X+2,Y-16,X+2,Y-7,0)
 
-Line(PSX-5,PSY-27,PSX+5,PSY-27,0)
-Line(PSX+5,PSY-27,PSX+5,PSY-18,0)
-Line(PSX+5,PSY-18,PSX-5,PSY-18,0)
-Line(PSX-5,PSY-18,PSX-5,PSY-27,0)
-Pxl-On(PSX-2,PSY-24)
-Pxl-On(PSX+2,PSY-24)
+Line(X-4,Y-24,X+4,Y-24,0)
+Line(X+4,Y-24,X+4,Y-16,0)
+Line(X+4,Y-16,X-4,Y-16,0)
+Line(X-4,Y-16,X-4,Y-24,0)
+Pxl-On(X-1,Y-21)
+Pxl-On(X+1,Y-21)
 
-Line(PSX-7,PSY-16,PSX-12+ARM,PSY-6,0)
-Line(PSX+7,PSY-16,PSX+12-ARM,PSY-6,0)
+Line(X-6,Y-14,X-10+R,Y-5,0)
+Line(X+6,Y-14,X+10-R,Y-5,0)
 
-Line(CX,CY,CX,CY+14,0)
-Line(CX,CY,CX+10,CY+10,0)
-Line(CX+1,CY+1,CX+1,CY+12,0)
-Line(CX+10,CY+10,CX+4,CY+10,0)
-Line(CX-1,CY-1,CX-1,CY+15,0)
-Line(CX-1,CY-1,CX+11,CY+11,0)
+Line(CX,CY,CX,CY+13,0)
+Line(CX,CY,CX+9,CY+9,0)
+Line(CX+1,CY+1,CX+1,CY+11,0)
+Line(CX+9,CY+9,CX+3,CY+9,0)
+Line(CX-1,CY-1,CX-1,CY+14,0)
+Line(CX-1,CY-1,CX+10,CY+10,0)
 
 If K=45:Goto E
 Goto L
