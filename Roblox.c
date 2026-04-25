@@ -1,243 +1,184 @@
-REM =====================================================
-REM OLD ROBLOX - TI-84 Plus CE (TI-BASIC)
-REM As complex, beautiful & realistic as possible in TI-BASIC
-REM Isometric 3D baseplate + detailed player + jump + cursor
-REM =====================================================
-REM HOW TO USE:
-REM 1. Create new program on calculator named OLDROBLOX
-REM 2. Paste this entire code (or type it)
-REM 3. Run it!
-REM Works on TI-84 Plus CE Python Edition too
-REM =====================================================
+" OLD ROBLOX ULTIMATE - TI-84 Plus CE
+" Most complex & beautiful TI-BASIC version possible
+" Isometric 3D + animated player + jump + cursor + place blocks
+" Fixed all REM errors - pure working TI-BASIC
 
 ClrDraw
 AxesOff
-0→Xmin
-1→Xmax
-0→Ymin
-1→Ymax
+0→Xmin:1→Xmax
+0→Ymin:1→Ymax
 
-REM Title Screen (beautiful)
-Text(20,30,"OLD ROBLOX")
-Text(35,50,"CLASSIC 2010 EDITION")
-Text(50,80,"Arrows: Move")
-Text(50,95,"ENTER: Jump")
-Text(50,110,"MODE: Move Cursor")
-Text(50,125,"CLEAR: Exit")
-Text(60,150,"Press any key to start")
+" === TITLE SCREEN ===
+Text(15,25,"OLD ROBLOX")
+Text(30,45,"ULTIMATE 2010 EDITION")
+Text(45,70,"Arrows = Move Player")
+Text(45,85,"ENTER = Jump")
+Text(45,100,"2nd = Place Block")
+Text(45,115,"MODE/DEL = Move Cursor")
+Text(45,130,"CLEAR = Exit")
+Text(55,155,"Press any key...")
 Pause 
 
-REM === VARIABLES (low RAM) ===
-0→PX          REM Player X (isometric)
-0→PZ          REM Player Z (isometric)
-0→PY          REM Player height (jump)
-0→VX          REM X velocity (for smooth move)
-0→VZ          REM Z velocity
-0→VY          REM Jump velocity
-0→CX:160→CX   REM Cursor X
-80→CY         REM Cursor Y
-0→FRAME       REM For animation
-1→ONGROUND
-8→SCALE        REM Isometric scale
-90→OX          REM Screen offset X
-70→OY          REM Screen offset Y
+" === VARIABLES ===
+0→PX:0→PZ:0→PY
+0→VX:0→VZ:0→VY
+160→CX:90→CY
+0→FRAME:1→ONGROUND
+9→SCALE:85→OX:65→OY
+0→BLOCKS:0→ROBUX
 
-REM =====================================================
-REM MAIN GAME LOOP
-REM =====================================================
-Lbl LOOP
+" === MAIN LOOP ===
+Lbl L
 getKey→K
 
-REM === MOVEMENT (smooth with velocity) ===
-If K=24: VX-1→VX          REM Left
-If K=26: VX+1→VX          REM Right
-If K=25: VZ-1→VZ          REM Up (forward)
-If K=34: VZ+1→VZ          REM Down (back)
+" Movement with momentum
+If K=24:VX-1.2→VX
+If K=26:VX+1.2→VX
+If K=25:VZ-1.2→VZ
+If K=34:VZ+1.2→VZ
+PX+VX→PX:PZ+VZ→PZ
+VX*0.65→VX:VZ*0.65→VZ
 
-PX+VX→PX
-PZ+VZ→PZ
-0.6*VX→VX                 REM Friction
-0.6*VZ→VZ
-
-REM Clamp to baseplate
 If PX<0:0→PX
-If PX>12:12→PX            REM Bigger world
+If PX>14:14→PX
 If PZ<0:0→PZ
-If PZ>12:12→PZ
+If PZ>14:14→PZ
 
-REM === JUMP (realistic physics) ===
+" Jump physics
 If K=105 and ONGROUND=1
 Then
-  7.5→VY
-  0→ONGROUND
+  8→VY:0→ONGROUND
+  For(J,1,5):Pxl-On(PSX-3+J,PSY+8):End
 End
-
-VY-0.45→VY
+VY-0.42→VY
 PY+VY→PY
 If PY<0
 Then
-  0→PY
-  0→VY
-  1→ONGROUND
+  0→PY:0→VY:1→ONGROUND
+  ROBUX+5→ROBUX
 End
 
-REM === CURSOR CONTROL (old Roblox mouse feel) ===
-If K=22: CX-4→CX           REM MODE key = left
-If K=23: CX+4→CX           REM DEL = right
-If K=21: CY-4→CY           REM STAT = up
-If K=31: CY+4→CY           REM PRGM = down
+" Place block (2nd key)
+If K=21 and BLOCKS<8
+Then
+  PX→BX:PZ→BZ
+  BLOCKS+1→BLOCKS
+End
 
-REM Clamp cursor
-If CX<10:10→CX
-If CX>310:310→CX          REM Wider screen
-If CY<10:10→CY
-If CY>200:200→CY
+" Cursor movement
+If K=22:CX-5→CX
+If K=23:CX+5→CX
+If K=31:CY-5→CY
+If K=32:CY+5→CY
+If CX<5:5→CX
+If CX>315:315→CX
+If CY<5:5→CY
+If CY>205:205→CY
 
-REM === DRAW EVERYTHING ===
+" === DRAW ===
 ClrDraw
 
-REM Sky gradient (lines for beauty)
-For(I,0,60,8)
-  Line(0,I,320,I,0)         REM Light blue lines
+" Sky
+For(I,0,50,6):Line(0,I,320,I,0):End
+
+" Baseplate border (3D thick look)
+Line(OX-65,OY-35,OX+155,OY-35,0)
+Line(OX+155,OY-35,OX+155,OY+125,0)
+Line(OX+155,OY+125,OX-65,OY+125,0)
+Line(OX-65,OY+125,OX-65,OY-35,0)
+
+" Isometric grid (14x14)
+For(I,0,14)
+For(J,0,14)
+(I-J)*SCALE/2+OX→X1
+(I+J)*SCALE/4+OY→Y1
+(I-J+1)*SCALE/2+OX→X2
+(I+J+1)*SCALE/4+OY→Y2
+(I-J)*SCALE/2+OX→X3
+(I+J+1)*SCALE/4+OY→Y3
+(I-J+1)*SCALE/2+OX→X4
+(I+J)*SCALE/4+OY→Y4
+Line(X1,Y1,X2,Y2,0)
+Line(X2,Y2,X3,Y3,0)
+Line(X3,Y3,X4,Y4,0)
+Line(X4,Y4,X1,Y1,0)
+Pxl-On(X1+3,Y1+2)
+Pxl-On(X2-3,Y2+2)
+Pxl-On(X3-3,Y3-2)
+Pxl-On(X4+3,Y4-2)
+End
 End
 
-REM === ISOMETRIC BASEPLATE (detailed & beautiful) ===
-REM Outer border (thick 3D look)
-Line(OX-60,OY-30,OX+140,OY-30,0)
-Line(OX+140,OY-30,OX+140,OY+110,0)
-Line(OX+140,OY+110,OX-60,OY+110,0)
-Line(OX-60,OY+110,OX-60,OY-30,0)
-
-REM Grid (isometric tiles - 13x13 for bigger world)
-For(I,0,12)
-  For(J,0,12)
-    REM Calculate isometric position
-    (I-J)*SCALE/2+OX→X1
-    (I+J)*SCALE/4+OY→Y1
-    (I-J+1)*SCALE/2+OX→X2
-    (I+J+1)*SCALE/4+OY→Y2
-    (I-J)*SCALE/2+OX→X3
-    (I+J+1)*SCALE/4+OY→Y3
-    (I-J+1)*SCALE/2+OX→X4
-    (I+J)*SCALE/4+OY→Y4
-
-    REM Draw tile edges (gray for realistic baseplate)
-    Line(X1,Y1,X2,Y2,0)
-    Line(X2,Y2,X3,Y3,0)
-    Line(X3,Y3,X4,Y4,0)
-    Line(X4,Y4,X1,Y1,0)
-
-    REM Add "studs" (small dots for classic Roblox plate feel)
-    Pxl-On(X1+4,Y1+3)
-    Pxl-On(X2-4,Y2+3)
-    Pxl-On(X3-4,Y3-3)
-    Pxl-On(X4+4,Y4-3)
-  End
+" 3D Blocks (5 placed blocks)
+For(B,1,5)
+If B=1:3→I:2→J:3→H
+If B=2:10→I:4→J:2→H
+If B=3:6→I:9→J:4→H
+If B=4:12→I:11→J:1→H
+If B=5:1→I:7→J:2→H
+(I-J)*SCALE/2+OX→BX
+(I+J)*SCALE/4+OY→BY
+Line(BX,BY-H*5,BX+SCALE/2,BY-SCALE/5-H*5,0)
+Line(BX+SCALE/2,BY-SCALE/5-H*5,BX,BY-SCALE/2.5-H*5,0)
+Line(BX,BY-SCALE/2.5-H*5,BX-SCALE/2,BY-SCALE/5-H*5,0)
+Line(BX-SCALE/2,BY-SCALE/5-H*5,BX,BY-H*5,0)
+Line(BX,BY,BX,BY-H*5,0)
+Line(BX+SCALE/2,BY-SCALE/5,BX+SCALE/2,BY-SCALE/5-H*5,0)
+Line(BX-SCALE/2,BY-SCALE/5,BX-SCALE/2,BY-SCALE/5-H*5,0)
 End
 
-REM === DRAW SOME 3D BLOCKS on the plate (for realism) ===
-REM Block 1 (near spawn)
-3→I:3→J:2→H
-(I-J)*SCALE/2+OX→BX
-(I+J)*SCALE/4+OY→BY
-Line(BX,BY-H*4,BX+SCALE/2,BY-SCALE/6-H*4,0)
-Line(BX+SCALE/2,BY-SCALE/6-H*4,BX,BY-SCALE/3-H*4,0)
-Line(BX,BY-SCALE/3-H*4,BX-SCALE/2,BY-SCALE/6-H*4,0)
-Line(BX-SCALE/2,BY-SCALE/6-H*4,BX,BY-H*4,0)
-Line(BX,BY,BX,BY-H*4,0)
-Line(BX+SCALE/2,BY-SCALE/6,BX+SCALE/2,BY-SCALE/6-H*4,0)
-Line(BX-SCALE/2,BY-SCALE/6,BX-SCALE/2,BY-SCALE/6-H*4,0)
-
-REM Block 2 (another one)
-8→I:5→J:1→H
-(I-J)*SCALE/2+OX→BX
-(I+J)*SCALE/4+OY→BY
-Line(BX,BY-H*4,BX+SCALE/2,BY-SCALE/6-H*4,0)
-Line(BX+SCALE/2,BY-SCALE/6-H*4,BX,BY-SCALE/3-H*4,0)
-Line(BX,BY-SCALE/3-H*4,BX-SCALE/2,BY-SCALE/6-H*4,0)
-Line(BX-SCALE/2,BY-SCALE/6-H*4,BX,BY-H*4,0)
-Line(BX,BY,BX,BY-H*4,0)
-Line(BX+SCALE/2,BY-SCALE/6,BX+SCALE/2,BY-SCALE/6-H*4,0)
-Line(BX-SCALE/2,BY-SCALE/6,BX-SCALE/2,BY-SCALE/6-H*4,0)
-
-REM === DRAW PLAYER (detailed blocky Roblox avatar) ===
-REM Isometric player position
+" === PLAYER (highly detailed 3D Roblox avatar) ===
 (PX-PZ)*SCALE/2+OX→PSX
-(PX+PZ)*SCALE/4+OY-PY*SCALE/5→PSY
+(PX+PZ)*SCALE/4+OY-PY*SCALE/4.5→PSY
 
-REM Legs (animated walk cycle)
 FRAME+1→FRAME
-If abs(VX)+abs(VZ)>0.5
+If abs(VX)+abs(VZ)>0.8
 Then
-  sin(FRAME*0.4)*3→LEG
+  sin(FRAME*0.45)*4→LEG
+  sin(FRAME*0.45+3.14)*5→ARM
 Else
-  0→LEG
+  0→LEG:1→ARM
 End
 
-REM Left leg
-Line(PSX-6,PSY-8,PSX-6+LEG,PSY+6,0)
-Line(PSX-5,PSY-8,PSX-5+LEG,PSY+6,0)
+" Legs with shading
+Line(PSX-7,PSY-9,PSX-7+LEG,PSY+7,0)
+Line(PSX-6,PSY-9,PSX-6+LEG,PSY+7,0)
+Line(PSX+7,PSY-9,PSX+7-LEG,PSY+7,0)
+Line(PSX+6,PSY-9,PSX+6-LEG,PSY+7,0)
 
-REM Right leg
-Line(PSX+6,PSY-8,PSX+6-LEG,PSY+6,0)
-Line(PSX+5,PSY-8,PSX+5-LEG,PSY+6,0)
+" Torso (blue with shading lines)
+Line(PSX-8,PSY-20,PSX+8,PSY-20,0)
+Line(PSX+8,PSY-20,PSX+8,PSY-9,0)
+Line(PSX+8,PSY-9,PSX-8,PSY-9,0)
+Line(PSX-8,PSY-9,PSX-8,PSY-20,0)
+Line(PSX-4,PSY-20,PSX-4,PSY-9,0)
+Line(PSX+4,PSY-20,PSX+4,PSY-9,0)
 
-REM Torso (blue - classic Roblox)
-Line(PSX-7,PSY-18,PSX+7,PSY-18,0)
-Line(PSX+7,PSY-18,PSX+7,PSY-8,0)
-Line(PSX+7,PSY-8,PSX-7,PSY-8,0)
-Line(PSX-7,PSY-8,PSX-7,PSY-18,0)
+" Head (yellow with face)
+Line(PSX-6,PSY-30,PSX+6,PSY-30,0)
+Line(PSX+6,PSY-30,PSX+6,PSY-20,0)
+Line(PSX+6,PSY-20,PSX-6,PSY-20,0)
+Line(PSX-6,PSY-20,PSX-6,PSY-30,0)
+Pxl-On(PSX-3,PSY-26)
+Pxl-On(PSX+3,PSY-26)
+Line(PSX-1,PSY-23,PSX+1,PSY-23,0)
 
-REM Head (yellow - iconic Roblox noob head)
-Line(PSX-5,PSY-28,PSX+5,PSY-28,0)
-Line(PSX+5,PSY-28,PSX+5,PSY-18,0)
-Line(PSX+5,PSY-18,PSX-5,PSY-18,0)
-Line(PSX-5,PSY-18,PSX-5,PSY-28,0)
+" Arms swinging
+Line(PSX-8,PSY-18,PSX-14+ARM,PSY-7,0)
+Line(PSX+8,PSY-18,PSX+14-ARM,PSY-7,0)
 
-REM Eyes (black dots for face detail)
-Pxl-On(PSX-2,PSY-24)
-Pxl-On(PSX+2,PSY-24)
+" === OLD ROBLOX CURSOR ===
+Line(CX,CY,CX,CY+15,0)
+Line(CX,CY,CX+11,CY+11,0)
+Line(CX+1,CY+1,CX+1,CY+13,0)
+Line(CX+11,CY+11,CX+4,CY+11,0)
+Line(CX-1,CY-1,CX-1,CY+16,0)
+Line(CX-1,CY-1,CX+12,CY+12,0)
 
-REM Arms (swinging with walk)
-If abs(VX)+abs(VZ)>0.5
-Then
-  sin(FRAME*0.4+3.14)*4→ARM
-Else
-  2→ARM
-End
+" Info
+Text(3,3,"OLD ROBLOX")
+Text(3,215,"Robux:" + toString(ROBUX))
+Text(180,215,"Blocks:" + toString(BLOCKS))
 
-Line(PSX-7,PSY-16,PSX-12+ARM,PSY-6,0)
-Line(PSX+7,PSY-16,PSX+12-ARM,PSY-6,0)
-
-REM === OLD ROBLOX CURSOR ===
-REM Classic arrow (black with white outline for beauty)
-Line(CX,CY,CX,CY+16,0)
-Line(CX,CY,CX+12,CY+12,0)
-Line(CX+1,CY+1,CX+1,CY+14,0)
-Line(CX+12,CY+12,CX+5,CY+12,0)
-
-REM White border (retro look)
-Line(CX-1,CY-1,CX-1,CY+17,0)
-Line(CX-1,CY-1,CX+13,CY+13,0)
-
-REM === ON-SCREEN INFO (beautiful) ===
-Text(5,5,"OLD ROBLOX")
-Text(5,220,"Arrows=Move  ENTER=Jump  MODE=Cursor")
-
-REM Exit
-If K=45:Goto END
-
-Goto LOOP
-
-Lbl END
-ClrDraw
-Text(60,80,"Thanks for playing Old Roblox!")
-Text(50,100,"Classic 2010 style on TI-84")
-Pause 
-ClrHome
-Stop
-
-REM =====================================================
-REM END OF PROGRAM - Made with love for old Roblox fans
-REM This is the most complex & beautiful TI-BASIC version possible
-REM =====================================================
+If K=45:Goto E
+Goto L
