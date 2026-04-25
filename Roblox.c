@@ -1,95 +1,71 @@
-" OLD ROBLOX ULTIMATE - TI-84 Plus CE
-" Most complex & beautiful TI-BASIC version possible
-" Isometric 3D + animated player + jump + cursor + place blocks
-" Fixed all REM errors - pure working TI-BASIC
+" OLD ROBLOX CLEAN - No text, zoom with MODE/DEL
 
 ClrDraw
 AxesOff
 0→Xmin:1→Xmax
 0→Ymin:1→Ymax
 
-" === TITLE SCREEN ===
-Text(15,25,"OLD ROBLOX")
-Text(30,45,"ULTIMATE 2010 EDITION")
-Text(45,70,"Arrows = Move Player")
-Text(45,85,"ENTER = Jump")
-Text(45,100,"2nd = Place Block")
-Text(45,115,"MODE/DEL = Move Cursor")
-Text(45,130,"CLEAR = Exit")
-Text(55,155,"Press any key...")
-Pause 
-
-" === VARIABLES ===
 0→PX:0→PZ:0→PY
 0→VX:0→VZ:0→VY
 160→CX:90→CY
 0→FRAME:1→ONGROUND
 9→SCALE:85→OX:65→OY
-0→BLOCKS:0→ROBUX
+0→CAMH:42
 
-" === MAIN LOOP ===
 Lbl L
 getKey→K
 
-" Movement with momentum
-If K=24:VX-1.2→VX
-If K=26:VX+1.2→VX
-If K=25:VZ-1.2→VZ
-If K=34:VZ+1.2→VZ
+If K=24:VX-1.1→VX
+If K=26:VX+1.1→VX
+If K=25:VZ-1.1→VZ
+If K=34:VZ+1.1→VZ
 PX+VX→PX:PZ+VZ→PZ
-VX*0.65→VX:VZ*0.65→VZ
+VX*0.7→VX:VZ*0.7→VZ
 
 If PX<0:0→PX
-If PX>14:14→PX
+If PX>13:13→PX
 If PZ<0:0→PZ
-If PZ>14:14→PZ
+If PZ>13:13→PZ
 
-" Jump physics
 If K=105 and ONGROUND=1
 Then
-  8→VY:0→ONGROUND
-  For(J,1,5):Pxl-On(PSX-3+J,PSY+8):End
+  7.5→VY:0→ONGROUND
 End
-VY-0.42→VY
+VY-0.4→VY
 PY+VY→PY
 If PY<0
 Then
   0→PY:0→VY:1→ONGROUND
-  ROBUX+5→ROBUX
 End
 
-" Place block (2nd key)
-If K=21 and BLOCKS<8
-Then
-  PX→BX:PZ→BZ
-  BLOCKS+1→BLOCKS
-End
+" Zoom with MODE and DEL (like I/O)
+If K=22:SCALE+1→SCALE:CAMH+2→CAMH
+If K=23:SCALE-1→SCALE:CAMH-2→CAMH
+If SCALE<5:5→SCALE
+If SCALE>18:18→SCALE
+If CAMH<25:25→CAMH
+If CAMH>65:65→CAMH
 
-" Cursor movement
-If K=22:CX-5→CX
-If K=23:CX+5→CX
-If K=31:CY-5→CY
-If K=32:CY+5→CY
+If K=22:CX-4→CX
+If K=23:CX+4→CX
+If K=31:CY-4→CY
+If K=32:CY+4→CY
 If CX<5:5→CX
 If CX>315:315→CX
 If CY<5:5→CY
 If CY>205:205→CY
 
-" === DRAW ===
 ClrDraw
 
-" Sky
-For(I,0,50,6):Line(0,I,320,I,0):End
+For(I,0,55,7):Line(0,I,320,I,0):End
 
-" Baseplate border (3D thick look)
-Line(OX-65,OY-35,OX+155,OY-35,0)
-Line(OX+155,OY-35,OX+155,OY+125,0)
-Line(OX+155,OY+125,OX-65,OY+125,0)
-Line(OX-65,OY+125,OX-65,OY-35,0)
+Line(OX-60,OY-32,OX+150,OY-32,0)
+Line(OX+150,OY-32,OX+150,OY+120,0)
+Line(OX+150,OY+120,OX-60,OY+120,0)
+Line(OX-60,OY+120,OX-60,OY-32,0)
 
-" Isometric grid (14x14)
-For(I,0,14)
-For(J,0,14)
+For(I,0,13)
+For(J,0,13)
 (I-J)*SCALE/2+OX→X1
 (I+J)*SCALE/4+OY→Y1
 (I-J+1)*SCALE/2+OX→X2
@@ -109,13 +85,11 @@ Pxl-On(X4+3,Y4-2)
 End
 End
 
-" 3D Blocks (5 placed blocks)
-For(B,1,5)
-If B=1:3→I:2→J:3→H
-If B=2:10→I:4→J:2→H
-If B=3:6→I:9→J:4→H
-If B=4:12→I:11→J:1→H
-If B=5:1→I:7→J:2→H
+For(B,1,4)
+If B=1:2→I:3→J:3→H
+If B=2:9→I:5→J:2→H
+If B=3:5→I:10→J:4→H
+If B=4:11→I:8→J:1→H
 (I-J)*SCALE/2+OX→BX
 (I+J)*SCALE/4+OY→BY
 Line(BX,BY-H*5,BX+SCALE/2,BY-SCALE/5-H*5,0)
@@ -127,58 +101,52 @@ Line(BX+SCALE/2,BY-SCALE/5,BX+SCALE/2,BY-SCALE/5-H*5,0)
 Line(BX-SCALE/2,BY-SCALE/5,BX-SCALE/2,BY-SCALE/5-H*5,0)
 End
 
-" === PLAYER (highly detailed 3D Roblox avatar) ===
 (PX-PZ)*SCALE/2+OX→PSX
 (PX+PZ)*SCALE/4+OY-PY*SCALE/4.5→PSY
 
 FRAME+1→FRAME
-If abs(VX)+abs(VZ)>0.8
+If abs(VX)+abs(VZ)>0.7
 Then
-  sin(FRAME*0.45)*4→LEG
-  sin(FRAME*0.45+3.14)*5→ARM
+  sin(FRAME*0.42)*3.5→LEG
+  sin(FRAME*0.42+3.14)*4.5→ARM
 Else
-  0→LEG:1→ARM
+  0→LEG:0.5→ARM
 End
 
-" Legs with shading
-Line(PSX-7,PSY-9,PSX-7+LEG,PSY+7,0)
-Line(PSX-6,PSY-9,PSX-6+LEG,PSY+7,0)
-Line(PSX+7,PSY-9,PSX+7-LEG,PSY+7,0)
-Line(PSX+6,PSY-9,PSX+6-LEG,PSY+7,0)
+Line(PSX-6,PSY-8,PSX-6+LEG,PSY+6,0)
+Line(PSX-5,PSY-8,PSX-5+LEG,PSY+6,0)
+Line(PSX+6,PSY-8,PSX+6-LEG,PSY+6,0)
+Line(PSX+5,PSY-8,PSX+5-LEG,PSY+6,0)
 
-" Torso (blue with shading lines)
-Line(PSX-8,PSY-20,PSX+8,PSY-20,0)
-Line(PSX+8,PSY-20,PSX+8,PSY-9,0)
-Line(PSX+8,PSY-9,PSX-8,PSY-9,0)
-Line(PSX-8,PSY-9,PSX-8,PSY-20,0)
-Line(PSX-4,PSY-20,PSX-4,PSY-9,0)
-Line(PSX+4,PSY-20,PSX+4,PSY-9,0)
+Line(PSX-7,PSY-18,PSX+7,PSY-18,0)
+Line(PSX+7,PSY-18,PSX+7,PSY-8,0)
+Line(PSX+7,PSY-8,PSX-7,PSY-8,0)
+Line(PSX-7,PSY-8,PSX-7,PSY-18,0)
+Line(PSX-3,PSY-18,PSX-3,PSY-8,0)
+Line(PSX+3,PSY-18,PSX+3,PSY-8,0)
 
-" Head (yellow with face)
-Line(PSX-6,PSY-30,PSX+6,PSY-30,0)
-Line(PSX+6,PSY-30,PSX+6,PSY-20,0)
-Line(PSX+6,PSY-20,PSX-6,PSY-20,0)
-Line(PSX-6,PSY-20,PSX-6,PSY-30,0)
-Pxl-On(PSX-3,PSY-26)
-Pxl-On(PSX+3,PSY-26)
-Line(PSX-1,PSY-23,PSX+1,PSY-23,0)
+Line(PSX-5,PSY-27,PSX+5,PSY-27,0)
+Line(PSX+5,PSY-27,PSX+5,PSY-18,0)
+Line(PSX+5,PSY-18,PSX-5,PSY-18,0)
+Line(PSX-5,PSY-18,PSX-5,PSY-27,0)
+Pxl-On(PSX-2,PSY-24)
+Pxl-On(PSX+2,PSY-24)
 
-" Arms swinging
-Line(PSX-8,PSY-18,PSX-14+ARM,PSY-7,0)
-Line(PSX+8,PSY-18,PSX+14-ARM,PSY-7,0)
+Line(PSX-7,PSY-16,PSX-12+ARM,PSY-6,0)
+Line(PSX+7,PSY-16,PSX+12-ARM,PSY-6,0)
 
-" === OLD ROBLOX CURSOR ===
-Line(CX,CY,CX,CY+15,0)
-Line(CX,CY,CX+11,CY+11,0)
-Line(CX+1,CY+1,CX+1,CY+13,0)
-Line(CX+11,CY+11,CX+4,CY+11,0)
-Line(CX-1,CY-1,CX-1,CY+16,0)
-Line(CX-1,CY-1,CX+12,CY+12,0)
-
-" Info
-Text(3,3,"OLD ROBLOX")
-Text(3,215,"Robux:" + toString(ROBUX))
-Text(180,215,"Blocks:" + toString(BLOCKS))
+Line(CX,CY,CX,CY+14,0)
+Line(CX,CY,CX+10,CY+10,0)
+Line(CX+1,CY+1,CX+1,CY+12,0)
+Line(CX+10,CY+10,CX+4,CY+10,0)
+Line(CX-1,CY-1,CX-1,CY+15,0)
+Line(CX-1,CY-1,CX+11,CY+11,0)
 
 If K=45:Goto E
 Goto L
+
+Lbl E
+ClrDraw
+Pause 
+ClrHome
+Stop
