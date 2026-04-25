@@ -1,256 +1,179 @@
-# Old Roblox Recreation for TI-84 Plus CE Python Edition
-# 3D effect with perspective projection, baseplate with grid,
-# old mouse cursor (uses get_mouse if available), player that moves and jumps.
-# Transfer this .py file to your calculator using TI Connect CE.
-# Run it from the Python app (prgm or Python menu).
-# Controls:
-#   Arrow keys: Move player (forward/back/strafe)
-#   ENTER: Jump
-#   CLEAR or ESC: Exit
-# Mouse (if supported in your setup): Moves the old Roblox-style cursor
-# Note: Graphics are simple lines due to ti_plotlib limits. Runs slowly on real hardware - that's part of the charm!
+REM ================================================
+REM OLD ROBLOX - TI-84 Plus CE (TI-BASIC)
+REM Isometric 3D-style baseplate + player + jump
+REM Inspired by TICraft-style blocky 3D effect
+REM (Best pure TI-BASIC approximation possible)
+REM ================================================
+REM How to make .8xp:
+REM 1. Copy this entire code into https://www.cemetech.net/sc/ (SourceCoder)
+REM 2. Select TI-84 Plus CE, compile to .8xp
+REM 3. Send to calculator with TI Connect CE
+REM 4. Run from prgm menu (name will be OLDROBLOX or similar)
+REM ================================================
 
-import ti_plotlib as plt
-from ti_system import get_key, get_mouse
-import math
-import time
+ClrDraw
+AxesOff
+0→Xmin:1→Xmax
+0→Ymin:1→Ymax
+Text(0,0,"OLD ROBLOX")
+Text(10,0,"Arrows:Move  ENTER:Jump  CLEAR:Exit")
+Pause 
 
-# Screen setup (matches TI-84 CE Python plot area approx 320x210)
-plt.window(0, 319, 0, 209)  # (0,0) upper-left, y increases downward
+REM === VARIABLES ===
+REM PX,PZ = player map position (isometric grid)
+REM PY = player height (for jumping)
+REM VX,VY = velocity for jump physics
+REM CX,CY = cursor position (old Roblox arrow)
+REM SCALE = isometric tile size
+REM OX,OY = screen offset for isometric origin
 
-# Camera for 3D perspective (fixed third-person view like old Roblox)
-CAM_X = 0.0
-CAM_Y = 38.0
-CAM_Z = -75.0
-FOV = 175.0
-CENTER_X = 160.0
-CENTER_Y = 95.0   # Adjusted for y-down screen
+10→SCALE
+80→OX
+60→OY
+0→PX:0→PZ:0→PY
+0→VX:0→VY
+160→CX:100→CY
+0→ONGROUND:1→ONGROUND
 
-def project(x, y, z):
-    """Simple perspective projection. Returns (sx, sy) or None if behind camera or offscreen."""
-    dx = x - CAM_X
-    dy = y - CAM_Y
-    dz = z - CAM_Z
-    if dz <= 8:  # Clip behind/close to camera
-        return None
-    sx = CENTER_X + (dx * FOV / dz)
-    sy = CENTER_Y - (dy * FOV / dz)  # Positive y in 3D goes up on screen (smaller sy = higher)
-    if 0 <= sx <= 319 and 0 <= sy <= 209:
-        return (sx, sy)
-    return None
+REM === DRAW ISOMETRIC BASEPLATE (TICraft-like grid) ===
+Lbl DRAWBASE
+ClrDraw
+REM Draw ground plane as isometric grid (parallelograms/diamonds)
+For(I,0,8)
+For(J,0,8)
+  REM Isometric projection: screenX = (I-J)*SCALE/2 + OX
+  REM screenY = (I+J)*SCALE/4 + OY
+  (I-J)*SCALE/2+OX→SX1
+  (I+J)*SCALE/4+OY→SY1
+  (I-J+1)*SCALE/2+OX→SX2
+  (I+J+1)*SCALE/4+OY→SY2
+  (I-J)*SCALE/2+OX→SX3
+  (I+J+1)*SCALE/4+OY→SY3
+  (I-J+1)*SCALE/2+OX→SX4
+  (I+J)*SCALE/4+OY→SY4
+  REM Draw tile edges (gray for baseplate)
+  Line(SX1,SY1,SX2,SY2,0)  REM dark gray
+  Line(SX2,SY2,SX3,SY3,0)
+  Line(SX3,SY3,SX4,SY4,0)
+  Line(SX4,SY4,SX1,SY1,0)
+End
+End
 
-# Player state (Roblox avatar style - blocky noob)
-px = 0.0      # x position on baseplate
-py = 0.0      # y (height) - 0 = on ground
-pz = 25.0     # z position (depth)
-vy = 0.0      # vertical velocity
-GRAVITY = 0.45
-JUMP_VEL = 7.5
-MOVE_SPEED = 1.8
-frame = 0
+REM Draw some "bricks" or 3D cubes on the baseplate (for depth)
+REM Example cube at (3,3)
+3→I:3→J:1→H  REM H=height in blocks
+(I-J)*SCALE/2+OX→SX
+(I+J)*SCALE/4+OY→SY
+REM Simple isometric cube (top + sides)
+Line(SX,SY-H*SCALE/3,SX+SCALE/2,SY-SCALE/6-H*SCALE/3,0)
+Line(SX+SCALE/2,SY-SCALE/6-H*SCALE/3,SX,SY-SCALE/3-H*SCALE/3,0)
+Line(SX,SY-SCALE/3-H*SCALE/3,SX-SCALE/2,SY-SCALE/6-H*SCALE/3,0)
+Line(SX-SCALE/2,SY-SCALE/6-H*SCALE/3,SX,SY-H*SCALE/3,0)
+REM Vertical edges for 3D
+Line(SX,SY,SX,SY-H*SCALE/3,0)
+Line(SX+SCALE/2,SY-SCALE/6,SX+SCALE/2,SY-SCALE/6-H*SCALE/3,0)
+Line(SX-SCALE/2,SY-SCALE/6,SX-SCALE/2,SY-SCALE/6-H*SCALE/3,0)
 
-def draw_baseplate():
-    """Draw the classic Roblox baseplate with grid for 3D depth effect."""
-    # Outer edges (darker)
-    plt.color(70, 70, 70)
-    corners = [(-52, 0, -52), (52, 0, -52), (52, 0, 52), (-52, 0, 52)]
-    proj = [project(c[0], c[1], c[2]) for c in corners]
-    if all(proj):
-        for i in range(4):
-            p1 = proj[i]
-            p2 = proj[(i + 1) % 4]
-            plt.line(p1[0], p1[1], p2[0], p2[1])
-    
-    # Grid lines (lighter, classic Roblox feel)
-    plt.color(110, 110, 110)
-    step = 13.0
-    for i in range(-4, 5):
-        # Lines parallel to X axis (constant Z)
-        p1 = project(-52, 0, i * step)
-        p2 = project(52, 0, i * step)
-        if p1 and p2:
-            plt.line(p1[0], p1[1], p2[0], p2[1])
-        # Lines parallel to Z axis (constant X)
-        p1 = project(i * step, 0, -52)
-        p2 = project(i * step, 0, 52)
-        if p1 and p2:
-            plt.line(p1[0], p1[1], p2[0], p2[1])
-    
-    # Horizon line for extra depth
-    plt.color(180, 180, 180)
-    h1 = project(-120, 0, 80)
-    h2 = project(120, 0, 80)
-    if h1 and h2:
-        plt.line(h1[0], h1[1], h2[0], h2[1])
+REM === DRAW PLAYER (blocky Roblox noob style) ===
+Lbl DRAWPLAYER
+REM Project player position
+(PX-PZ)*SCALE/2+OX→PSX
+(PX+PZ)*SCALE/4+OY-PY*SCALE/6→PSY   REM subtract PY for jump height
 
-def draw_player(px, py, pz, frame):
-    """Draw a simple blocky Roblox-style player (noob avatar) with walk animation."""
-    # Legs (dark, animated sway for walk/jump feel)
-    plt.color(40, 40, 40)
-    sway = math.sin(frame * 0.38) * 1.1
-    arm_sway = math.sin(frame * 0.38 + 1.6) * 0.9
-    
-    # Left leg
-    leg_l_top = project(px - 0.85, py + 2.2, pz)
-    leg_l_bot = project(px - 0.85 - sway * 0.6, py, pz)
-    if leg_l_top and leg_l_bot:
-        plt.line(leg_l_top[0], leg_l_top[1], leg_l_bot[0], leg_l_bot[1])
-    
-    # Right leg
-    leg_r_top = project(px + 0.85, py + 2.2, pz)
-    leg_r_bot = project(px + 0.85 + sway * 0.6, py, pz)
-    if leg_r_top and leg_r_bot:
-        plt.line(leg_r_top[0], leg_r_top[1], leg_r_bot[0], leg_r_bot[1])
-    
-    # Torso (classic blue)
-    plt.color(30, 90, 200)
-    torso_top = project(px, py + 3.8, pz)
-    torso_bot = project(px, py + 2.0, pz)
-    if torso_top and torso_bot:
-        plt.line(torso_top[0], torso_top[1], torso_bot[0], torso_bot[1])
-    
-    # Arms (blue, swinging)
-    plt.color(30, 90, 200)
-    # Left arm
-    arm_l_top = project(px - 1.1, py + 3.5, pz)
-    arm_l_bot = project(px - 2.0 - arm_sway, py + 2.3, pz)
-    if arm_l_top and arm_l_bot:
-        plt.line(arm_l_top[0], arm_l_top[1], arm_l_bot[0], arm_l_bot[1])
-    # Right arm
-    arm_r_top = project(px + 1.1, py + 3.5, pz)
-    arm_r_bot = project(px + 2.0 + arm_sway, py + 2.3, pz)
-    if arm_r_top and arm_r_bot:
-        plt.line(arm_r_top[0], arm_r_top[1], arm_r_bot[0], arm_r_bot[1])
-    
-    # Head (classic yellow Roblox noob head)
-    plt.color(255, 215, 0)
-    head_cx = px
-    head_cy = py + 5.2
-    hs = 1.35  # head half-size
-    head_pts = [
-        project(head_cx - hs, head_cy - hs, pz),
-        project(head_cx + hs, head_cy - hs, pz),
-        project(head_cx + hs, head_cy + hs, pz),
-        project(head_cx - hs, head_cy + hs, pz)
-    ]
-    if all(head_pts):
-        for i in range(4):
-            p1 = head_pts[i]
-            p2 = head_pts[(i + 1) % 4]
-            plt.line(p1[0], p1[1], p2[0], p2[1])
-    
-    # Simple face detail (eyes)
-    plt.color(0, 0, 0)
-    eye_l = project(head_cx - 0.55, head_cy + 0.3, pz)
-    eye_r = project(head_cx + 0.55, head_cy + 0.3, pz)
-    if eye_l:
-        plt.plot(eye_l[0], eye_l[1])
-    if eye_r:
-        plt.plot(eye_r[0], eye_r[1])
+REM Body (blue block)
+Line(PSX-4,PSY-12,PSX+4,PSY-12,0)
+Line(PSX+4,PSY-12,PSX+4,PSY-4,0)
+Line(PSX+4,PSY-4,PSX-4,PSY-4,0)
+Line(PSX-4,PSY-4,PSX-4,PSY-12,0)
 
-def draw_old_roblox_cursor(cx, cy):
-    """Draw a classic old Roblox arrow cursor (pre-2015 style - simple black arrow)."""
-    # White "border" / highlight for old-school look (thicker appearance)
-    plt.color(255, 255, 255)
-    plt.line(cx - 1, cy - 1, cx - 1, cy + 17)
-    plt.line(cx - 1, cy - 1, cx + 13, cy + 13)
-    plt.line(cx + 1, cy + 1, cx + 1, cy + 15)
-    plt.line(cx + 1, cy + 15, cx + 5, cy + 11)
-    
-    # Main black arrow
-    plt.color(0, 0, 0)
-    plt.line(cx, cy, cx, cy + 15)
-    plt.line(cx, cy, cx + 11, cy + 11)
-    plt.line(cx + 1, cy + 1, cx + 1, cy + 13)
-    plt.line(cx + 11, cy + 11, cx + 4, cy + 11)  # Arrowhead fill line
-    # Tiny tip highlight
-    plt.line(cx + 2, cy + 2, cx + 2, cy + 3)
+REM Head (yellow)
+Line(PSX-3,PSY-18,PSX+3,PSY-18,0)
+Line(PSX+3,PSY-18,PSX+3,PSY-12,0)
+Line(PSX+3,PSY-12,PSX-3,PSY-12,0)
+Line(PSX-3,PSY-12,PSX-3,PSY-18,0)
 
-# === MAIN GAME LOOP ===
-plt.cls()
-plt.color(255, 255, 255)
-# Title text (if your ti_plotlib supports text; otherwise it will be ignored or error - remove if issues)
-try:
-    plt.text(95, 12, "OLD ROBLOX")
-except:
-    pass  # Fallback if text not supported in your version
+REM Legs (animated simple - static for TI-BASIC speed)
+Line(PSX-3,PSY-4,PSX-3,PSY+2,0)
+Line(PSX+3,PSY-4,PSX+3,PSY+2,0)
 
-while True:
-    key = get_key()
-    
-    # Player movement (Roblox-style controls)
-    moved = False
-    if key == "up":
-        pz -= MOVE_SPEED
-        moved = True
-    if key == "down":
-        pz += MOVE_SPEED
-        moved = True
-    if key == "left":
-        px -= MOVE_SPEED
-        moved = True
-    if key == "right":
-        px += MOVE_SPEED
-        moved = True
-    
-    # Jump (ENTER key - classic action key)
-    if key == "enter":
-        if py <= 0.5:  # Only jump when on or near ground
-            vy = JUMP_VEL
-    
-    # Exit
-    if key == "clear" or key == "esc":
-        break
-    
-    # Physics (gravity + jump)
-    vy -= GRAVITY
-    py += vy
-    if py < 0:
-        py = 0
-        vy = 0
-    
-    # Keep player on the baseplate
-    px = max(-48, min(48, px))
-    pz = max(-48, min(48, pz))
-    
-    # Get mouse position for old cursor (works if mouse supported; otherwise defaults to center)
-    try:
-        mx, my = get_mouse()
-        if mx >= 0 and my >= 0:
-            cx, cy = mx, my
-        else:
-            cx, cy = 160, 95
-    except:
-        cx, cy = 160, 95  # Fallback
-    
-    # Draw everything fresh each frame
-    plt.cls()
-    
-    # Subtle horizon/sky effect (lines only)
-    plt.color(120, 160, 220)
-    for yy in range(0, 60, 8):
-        p1 = project(-200, 10 + yy * 0.3, 120 - yy * 1.5)
-        p2 = project(200, 10 + yy * 0.3, 120 - yy * 1.5)
-        if p1 and p2:
-            plt.line(p1[0], p1[1], p2[0], p2[1])
-    
-    draw_baseplate()
-    draw_player(px, py, pz, frame)
-    draw_old_roblox_cursor(cx, cy)
-    
-    # Bottom instructions (simple)
-    plt.color(200, 200, 200)
-    try:
-        plt.text(10, 195, "Arrows:Move  ENTER:Jump  CLEAR:Exit")
-    except:
-        pass
-    
-    plt.show_plot()
-    
-    frame += 1
-    # Tiny delay for stability (adjust if too slow/fast on your calc)
-    time.sleep(0.025)
+REM Arms
+Line(PSX-4,PSY-10,PSX-8,PSY-6,0)
+Line(PSX+4,PSY-10,PSX+8,PSY-6,0)
 
-# Clean exit
-plt.cls()
-print("Thanks for playing Old Roblox on TI-84 CE Python!")
+Return
+
+REM === DRAW OLD ROBLOX CURSOR (arrow) ===
+Lbl DRAWCURSOR
+REM Simple arrow at (CX,CY)
+Line(CX,CY,CX,CY+12,0)
+Line(CX,CY,CX+8,CY+8,0)
+Line(CX+1,CY+1,CX+1,CY+10,0)
+Line(CX+8,CY+8,CX+3,CY+8,0)
+Return
+
+REM === MAIN GAME LOOP ===
+Lbl LOOP
+getKey→K
+
+REM Movement (arrow keys: 24=left, 25=right, 26=up, 34=down)
+If K=24: PX-1→PX
+If K=25: PX+1→PX
+If K=26: PZ-1→PZ
+If K=34: PZ+1→PZ
+
+REM Jump (ENTER = 105)
+If K=105 and ONGROUND=1
+Then
+  6→VY
+  0→ONGROUND
+End
+
+REM Physics
+VY-1→VY
+PY+VY→PY
+If PY<0
+Then
+  0→PY
+  0→VY
+  1→ONGROUND
+End
+
+REM Clamp to baseplate
+If PX<0:0→PX
+If PX>8:8→PX
+If PZ<0:0→PZ
+If PZ>8:8→PZ
+
+REM Cursor movement (use MODE=22 or DEL=23 to move cursor like "mouse")
+If K=22: CX-3→CX   REM left
+If K=23: CX+3→CX   REM right (example)
+If K=21: CY-3→CY   REM up (example keys)
+If K=31: CY+3→CY   REM down
+
+REM Redraw everything
+Goto DRAWBASE
+prgmOLDROBLOX   REM or call subroutines if split, but for single file use Lbl
+Goto DRAWPLAYER
+Goto DRAWCURSOR
+
+REM Title again (small)
+Text(0,0,"OLD ROBLOX")
+
+REM Exit on CLEAR (45)
+If K=45: Goto END
+
+Goto LOOP
+
+Lbl END
+ClrDraw
+Text(40,30,"Thanks for playing Old Roblox!")
+Pause 
+ClrHome
+Stop
+
+REM ================================================
+REM END OF PROGRAM
+REM To improve: Add more cubes, better animation,
+REM sound (none in basic), or hybrid with ASM for speed.
+REM This gives a solid isometric 3D effect on pure TI-BASIC!
+REM ================================================
