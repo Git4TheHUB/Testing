@@ -1,179 +1,149 @@
-REM ================================================
-REM OLD ROBLOX - TI-84 Plus CE (TI-BASIC)
-REM Isometric 3D-style baseplate + player + jump
-REM Inspired by TICraft-style blocky 3D effect
-REM (Best pure TI-BASIC approximation possible)
-REM ================================================
-REM How to make .8xp:
-REM 1. Copy this entire code into https://www.cemetech.net/sc/ (SourceCoder)
-REM 2. Select TI-84 Plus CE, compile to .8xp
-REM 3. Send to calculator with TI Connect CE
-REM 4. Run from prgm menu (name will be OLDROBLOX or similar)
-REM ================================================
+/*
+ * OLD ROBLOX 3D - TI-84 Plus CE
+ * Real 3D with filled colored shapes (perspective + filled boxes)
+ * Fully compatible with arTIfiCE / Cesium
+ *
+ * === HOW TO USE (3 steps) ===
+ * 1. Save this whole file as "old_roblox_3d.c"
+ * 2. Install CEdev (free): https://github.com/CE-Programming/toolchain
+ * 3. Open terminal in the same folder and type: make
+ *    → You will get OLDROBLOX.8xv
+ * 4. Send OLDROBLOX.8xv to your calculator and run with Cesium or arTIfiCE
+ */
 
-ClrDraw
-AxesOff
-0→Xmin:1→Xmax
-0→Ymin:1→Ymax
-Text(0,0,"OLD ROBLOX")
-Text(10,0,"Arrows:Move  ENTER:Jump  CLEAR:Exit")
-Pause 
+#include <graphx.h>
+#include <keypadc.h>
+#include <sys/timers.h>
+#include <math.h>
+#include <stdbool.h>
 
-REM === VARIABLES ===
-REM PX,PZ = player map position (isometric grid)
-REM PY = player height (for jumping)
-REM VX,VY = velocity for jump physics
-REM CX,CY = cursor position (old Roblox arrow)
-REM SCALE = isometric tile size
-REM OX,OY = screen offset for isometric origin
+#define CENTER_X 160
+#define CENTER_Y 120
 
-10→SCALE
-80→OX
-60→OY
-0→PX:0→PZ:0→PY
-0→VX:0→VY
-160→CX:100→CY
-0→ONGROUND:1→ONGROUND
+float camX = 0.0f, camY = 45.0f, camZ = -90.0f, fov = 180.0f;
+float playerX = 0.0f, playerY = 0.0f, playerZ = 30.0f;
+float velY = 0.0f;
+const float GRAVITY = 0.35f;
+const float JUMP_VEL = 7.0f;
+const float MOVE_SPEED = 2.0f;
 
-REM === DRAW ISOMETRIC BASEPLATE (TICraft-like grid) ===
-Lbl DRAWBASE
-ClrDraw
-REM Draw ground plane as isometric grid (parallelograms/diamonds)
-For(I,0,8)
-For(J,0,8)
-  REM Isometric projection: screenX = (I-J)*SCALE/2 + OX
-  REM screenY = (I+J)*SCALE/4 + OY
-  (I-J)*SCALE/2+OX→SX1
-  (I+J)*SCALE/4+OY→SY1
-  (I-J+1)*SCALE/2+OX→SX2
-  (I+J+1)*SCALE/4+OY→SY2
-  (I-J)*SCALE/2+OX→SX3
-  (I+J+1)*SCALE/4+OY→SY3
-  (I-J+1)*SCALE/2+OX→SX4
-  (I+J)*SCALE/4+OY→SY4
-  REM Draw tile edges (gray for baseplate)
-  Line(SX1,SY1,SX2,SY2,0)  REM dark gray
-  Line(SX2,SY2,SX3,SY3,0)
-  Line(SX3,SY3,SX4,SY4,0)
-  Line(SX4,SY4,SX1,SY1,0)
-End
-End
+typedef struct { float x, y, z; } Vec3;
 
-REM Draw some "bricks" or 3D cubes on the baseplate (for depth)
-REM Example cube at (3,3)
-3→I:3→J:1→H  REM H=height in blocks
-(I-J)*SCALE/2+OX→SX
-(I+J)*SCALE/4+OY→SY
-REM Simple isometric cube (top + sides)
-Line(SX,SY-H*SCALE/3,SX+SCALE/2,SY-SCALE/6-H*SCALE/3,0)
-Line(SX+SCALE/2,SY-SCALE/6-H*SCALE/3,SX,SY-SCALE/3-H*SCALE/3,0)
-Line(SX,SY-SCALE/3-H*SCALE/3,SX-SCALE/2,SY-SCALE/6-H*SCALE/3,0)
-Line(SX-SCALE/2,SY-SCALE/6-H*SCALE/3,SX,SY-H*SCALE/3,0)
-REM Vertical edges for 3D
-Line(SX,SY,SX,SY-H*SCALE/3,0)
-Line(SX+SCALE/2,SY-SCALE/6,SX+SCALE/2,SY-SCALE/6-H*SCALE/3,0)
-Line(SX-SCALE/2,SY-SCALE/6,SX-SCALE/2,SY-SCALE/6-H*SCALE/3,0)
+bool project(Vec3 p, int* sx, int* sy) {
+    float dx = p.x - camX;
+    float dy = p.y - camY;
+    float dz = p.z - camZ;
+    if (dz < 8.0f) return false;
+    *sx = (int)(CENTER_X + (dx * fov / dz));
+    *sy = (int)(CENTER_Y - (dy * fov / dz));
+    return (*sx >= 0 && *sx < 320 && *sy >= 0 && *sy < 240);
+}
 
-REM === DRAW PLAYER (blocky Roblox noob style) ===
-Lbl DRAWPLAYER
-REM Project player position
-(PX-PZ)*SCALE/2+OX→PSX
-(PX+PZ)*SCALE/4+OY-PY*SCALE/6→PSY   REM subtract PY for jump height
+void drawBox(float cx, float cy, float cz, float sx, float sy, float sz, uint8_t color) {
+    Vec3 c[8] = {
+        {cx-sx/2, cy-sy/2, cz-sz/2}, {cx+sx/2, cy-sy/2, cz-sz/2},
+        {cx+sx/2, cy+sy/2, cz-sz/2}, {cx-sx/2, cy+sy/2, cz-sz/2},
+        {cx-sx/2, cy-sy/2, cz+sz/2}, {cx+sx/2, cy-sy/2, cz+sz/2},
+        {cx+sx/2, cy+sy/2, cz+sz/2}, {cx-sx/2, cy+sy/2, cz+sz/2}
+    };
+    int p[8][2]; bool v[8] = {false};
+    for (int i = 0; i < 8; i++) v[i] = project(c[i], &p[i][0], &p[i][1]);
 
-REM Body (blue block)
-Line(PSX-4,PSY-12,PSX+4,PSY-12,0)
-Line(PSX+4,PSY-12,PSX+4,PSY-4,0)
-Line(PSX+4,PSY-4,PSX-4,PSY-4,0)
-Line(PSX-4,PSY-4,PSX-4,PSY-12,0)
+    gfx_SetColor(color);
+    if (v[4] && v[5] && v[6] && v[7]) {
+        gfx_FillTriangle(p[4][0], p[4][1], p[5][0], p[5][1], p[6][0], p[6][1]);
+        gfx_FillTriangle(p[4][0], p[4][1], p[6][0], p[6][1], p[7][0], p[7][1]);
+    }
+    if (v[2] && v[3] && v[6] && v[7]) {
+        gfx_FillTriangle(p[2][0], p[2][1], p[3][0], p[3][1], p[6][0], p[6][1]);
+        gfx_FillTriangle(p[3][0], p[3][1], p[7][0], p[7][1], p[6][0], p[6][1]);
+    }
+    if (v[1] && v[2] && v[5] && v[6]) {
+        gfx_FillTriangle(p[1][0], p[1][1], p[2][0], p[2][1], p[5][0], p[5][1]);
+        gfx_FillTriangle(p[2][0], p[2][1], p[6][0], p[6][1], p[5][0], p[5][1]);
+    }
+}
 
-REM Head (yellow)
-Line(PSX-3,PSY-18,PSX+3,PSY-18,0)
-Line(PSX+3,PSY-18,PSX+3,PSY-12,0)
-Line(PSX+3,PSY-12,PSX-3,PSY-12,0)
-Line(PSX-3,PSY-12,PSX-3,PSY-18,0)
+void drawOldCursor(int cx, int cy) {
+    gfx_SetColor(0);
+    gfx_Line(cx, cy, cx, cy+14);
+    gfx_Line(cx, cy, cx+10, cy+10);
+    gfx_Line(cx+1, cy+1, cx+1, cy+12);
+    gfx_Line(cx+10, cy+10, cx+4, cy+10);
+    gfx_SetColor(255);
+    gfx_Line(cx-1, cy-1, cx-1, cy+15);
+    gfx_Line(cx-1, cy-1, cx+11, cy+11);
+}
 
-REM Legs (animated simple - static for TI-BASIC speed)
-Line(PSX-3,PSY-4,PSX-3,PSY+2,0)
-Line(PSX+3,PSY-4,PSX+3,PSY+2,0)
+int main(void) {
+    gfx_Begin();
+    gfx_SetDrawBuffer();
 
-REM Arms
-Line(PSX-4,PSY-10,PSX-8,PSY-6,0)
-Line(PSX+4,PSY-10,PSX+8,PSY-6,0)
+    while (true) {
+        kb_Scan();
 
-Return
+        if (kb_Data[7] & kb_Up)    playerZ -= MOVE_SPEED;
+        if (kb_Data[7] & kb_Down)  playerZ += MOVE_SPEED;
+        if (kb_Data[7] & kb_Left)  playerX -= MOVE_SPEED;
+        if (kb_Data[7] & kb_Right) playerX += MOVE_SPEED;
 
-REM === DRAW OLD ROBLOX CURSOR (arrow) ===
-Lbl DRAWCURSOR
-REM Simple arrow at (CX,CY)
-Line(CX,CY,CX,CY+12,0)
-Line(CX,CY,CX+8,CY+8,0)
-Line(CX+1,CY+1,CX+1,CY+10,0)
-Line(CX+8,CY+8,CX+3,CY+8,0)
-Return
+        if ((kb_Data[6] & kb_Enter) || (kb_Data[1] & kb_2nd)) {
+            if (playerY <= 0.5f) velY = JUMP_VEL;
+        }
 
-REM === MAIN GAME LOOP ===
-Lbl LOOP
-getKey→K
+        velY -= GRAVITY;
+        playerY += velY;
+        if (playerY < 0.0f) { playerY = 0.0f; velY = 0.0f; }
 
-REM Movement (arrow keys: 24=left, 25=right, 26=up, 34=down)
-If K=24: PX-1→PX
-If K=25: PX+1→PX
-If K=26: PZ-1→PZ
-If K=34: PZ+1→PZ
+        if (playerX < -40) playerX = -40;
+        if (playerX >  40) playerX =  40;
+        if (playerZ < -40) playerZ = -40;
+        if (playerZ >  40) playerZ =  40;
 
-REM Jump (ENTER = 105)
-If K=105 and ONGROUND=1
-Then
-  6→VY
-  0→ONGROUND
-End
+        gfx_FillScreen(0x1A);
 
-REM Physics
-VY-1→VY
-PY+VY→PY
-If PY<0
-Then
-  0→PY
-  0→VY
-  1→ONGROUND
-End
+        // Filled baseplate
+        gfx_SetColor(0x4A);
+        int gx1,gy1,gx2,gy2,gx3,gy3,gx4,gy4;
+        if (project((Vec3){-55,0,-55}, &gx1, &gy1) &&
+            project((Vec3){ 55,0,-55}, &gx2, &gy2) &&
+            project((Vec3){ 55,0, 55}, &gx3, &gy3) &&
+            project((Vec3){-55,0, 55}, &gx4, &gy4)) {
+            gfx_FillTriangle(gx1, gy1, gx2, gy2, gx3, gy3);
+            gfx_FillTriangle(gx1, gy1, gx3, gy3, gx4, gy4);
+        }
 
-REM Clamp to baseplate
-If PX<0:0→PX
-If PX>8:8→PX
-If PZ<0:0→PZ
-If PZ>8:8→PZ
+        // Grid
+        gfx_SetColor(0xFF);
+        for (int i = -4; i <= 4; i++) {
+            int x1,y1,x2,y2;
+            if (project((Vec3){-50,0,i*12.5f}, &x1, &y1) &&
+                project((Vec3){ 50,0,i*12.5f}, &x2, &y2)) gfx_Line(x1, y1, x2, y2);
+            if (project((Vec3){i*12.5f,0,-50}, &x1, &y1) &&
+                project((Vec3){i*12.5f,0, 50}, &x2, &y2)) gfx_Line(x1, y1, x2, y2);
+        }
 
-REM Cursor movement (use MODE=22 or DEL=23 to move cursor like "mouse")
-If K=22: CX-3→CX   REM left
-If K=23: CX+3→CX   REM right (example)
-If K=21: CY-3→CY   REM up (example keys)
-If K=31: CY+3→CY   REM down
+        // Player (filled 3D colored boxes)
+        float px = playerX, py = playerY, pz = playerZ;
+        drawBox(px, py + 3.5f, pz, 4, 5, 3, 0x1E);      // torso blue
+        drawBox(px, py + 7.5f, pz, 3.5f, 3.5f, 3.5f, 0xE3); // head yellow
+        drawBox(px-1.5f, py+0.5f, pz-0.8f, 1.8f, 3, 1.8f, 0x20); // left leg
+        drawBox(px+1.5f, py+0.5f, pz+0.8f, 1.8f, 3, 1.8f, 0x20); // right leg
+        drawBox(px-3.5f, py+4.0f, pz, 1.5f, 4, 1.5f, 0x1E); // left arm
+        drawBox(px+3.5f, py+4.0f, pz, 1.5f, 4, 1.5f, 0x1E); // right arm
 
-REM Redraw everything
-Goto DRAWBASE
-prgmOLDROBLOX   REM or call subroutines if split, but for single file use Lbl
-Goto DRAWPLAYER
-Goto DRAWCURSOR
+        drawOldCursor(160, 90);
 
-REM Title again (small)
-Text(0,0,"OLD ROBLOX")
+        gfx_SetTextFGColor(0xFF);
+        gfx_PrintStringXY("OLD ROBLOX", 110, 5);
+        gfx_PrintStringXY("Arrows=Move  ENTER=Jump  CLEAR=Exit", 40, 220);
 
-REM Exit on CLEAR (45)
-If K=45: Goto END
+        gfx_SwapDraw();
+        delay(20);
 
-Goto LOOP
+        if (kb_Data[6] & kb_Clear) break;
+    }
 
-Lbl END
-ClrDraw
-Text(40,30,"Thanks for playing Old Roblox!")
-Pause 
-ClrHome
-Stop
-
-REM ================================================
-REM END OF PROGRAM
-REM To improve: Add more cubes, better animation,
-REM sound (none in basic), or hybrid with ASM for speed.
-REM This gives a solid isometric 3D effect on pure TI-BASIC!
-REM ================================================
+    gfx_End();
+    return 0;
+}
